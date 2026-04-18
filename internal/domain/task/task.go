@@ -32,15 +32,15 @@ const (
 )
 
 type RecurrenceRule struct {
-	RecurrenceType RecurrenceType
-	StartDate time.Time
-	EndDate *time.Time
-	TimeZone string
-	EveryNDays *int
-	DayOfMonth *int
-	DayParity DayParity
-	SpecificDates []time.Time
-	LastGeneratedFor *time.Time
+	RecurrenceType RecurrenceType `json:"type"`
+	StartDate time.Time `json:"start_date"`
+	EndDate *time.Time `json:"end_date,omitempty"`
+	TimeZone string `json:"time_zone"`
+	EveryNDays *int `json:"every_n_days,omitempty"`
+	DayOfMonth *int `json:"day_of_month,omitempty"`
+	DayParity DayParity `json:"day_parity"`
+	SpecificDates []time.Time `json:"specific_dates,omitempty"`
+	LastGeneratedFor *time.Time `json:"last_generated_for,omitempty"`
 }
 
 type Task struct {
@@ -48,11 +48,11 @@ type Task struct {
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
 	Status      Status    `json:"status"`
-	Kind 	TaskKind
-	ScheduledFor *time.Time
-	ParentTaskID *int64
-	IsActive bool
-	Recurrence *RecurrenceRule
+	Kind 	TaskKind `json:"kind"`
+	ScheduledFor *time.Time `json:"scheduled_for,omitempty"`
+	ParentTaskID *int64 `json:"parent_task_id,omitempty"`
+	IsActive bool `json:"is_active"`
+	Recurrence *RecurrenceRule `json:"recurrence,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
