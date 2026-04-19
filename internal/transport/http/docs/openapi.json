@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Task Service API",
-    "version": "1.0.0",
-    "description": "CRUD API for tasks built with clean architecture."
+    "version": "1.1.0",
+    "description": "CRUD API for tasks with support for recurring task templates using the same /api/v1/tasks endpoints."
   },
   "servers": [
     {
@@ -21,6 +21,20 @@
       "get": {
         "tags": ["Tasks"],
         "summary": "List tasks",
+        "description": "By default returns working tasks only: single and instance. Use kind=template to list recurring task templates.",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "description": "Filtering mode for task list",
+            "schema": {
+              "type": "string",
+              "enum": ["work", "template", "all"],
+              "default": "work"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Task list",
@@ -32,12 +46,14 @@
                 }
               }
             }
-          }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" }
         }
       },
       "post": {
         "tags": ["Tasks"],
         "summary": "Create task",
+        "description": "Creates a regular task if recurrence is omitted. Creates a recurring task template if recurrence is provided.",
         "requestBody": {
           "required": true,
           "content": {
@@ -86,6 +102,7 @@
       "put": {
         "tags": ["Tasks"],
         "summary": "Update task",
+        "description": "Updates a regular task, task instance, or recurring task template depending on the stored task kind.",
         "parameters": [
           {
             "name": "id",
@@ -118,6 +135,7 @@
       "delete": {
         "tags": ["Tasks"],
         "summary": "Delete task",
+        "description": "Deletes a regular task or task instance. For recurring task templates, the template is deactivated instead of being physically removed.",
         "parameters": [
           {
             "name": "id",
@@ -127,7 +145,7 @@
           }
         ],
         "responses": {
-          "204": { "description": "Deleted" },
+          "204": { "description": "Deleted or deactivated" },
           "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
@@ -169,6 +187,9 @@
             "type": "string",
             "enum": ["new", "in_progress", "done"],
             "example": "new"
+          },
+          "recurrence": {
+            "$ref": "#/components/schemas/RecurrenceRequest"
           }
         }
       },
@@ -188,8 +209,81 @@
             "type": "string",
             "enum": ["new", "in_progress", "done"],
             "example": "in_progress"
+          },
+          "recurrence": {
+            "$ref": "#/components/schemas/RecurrenceRequest"
           }
         }
+      },
+      "RecurrenceRequest": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["daily", "monthly", "specific_dates", "day_parity"],
+            "example": "daily"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-04-18"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "example": "2026-06-30"
+          },
+          "time_zone": {
+            "type": "string",
+            "example": "Europe/Moscow"
+          },
+          "every_n_days": {
+            "type": "integer",
+            "minimum": 1,
+            "nullable": true,
+            "example": 2
+          },
+          "day_of_month": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30,
+            "nullable": true,
+            "example": 15
+          },
+          "parity": {
+            "type": "string",
+            "enum": ["even", "odd"],
+            "nullable": true,
+            "example": "even"
+          },
+          "specific_dates": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": ["2026-04-20", "2026-04-24", "2026-05-02"]
+          }
+        },
+        "description": "Exactly one recurrence mode must be configured depending on type. daily uses every_n_days, monthly uses day_of_month, day_parity uses parity, specific_dates uses specific_dates."
+      },
+      "Recurrence": {
+        "allOf": [
+          { "$ref": "#/components/schemas/RecurrenceRequest" },
+          {
+            "type": "object",
+            "properties": {
+              "last_generated_for": {
+                "type": "string",
+                "format": "date",
+                "nullable": true,
+                "example": "2026-06-17"
+              }
+            }
+          }
+        ]
       },
       "Task": {
         "type": "object",
@@ -204,6 +298,33 @@
             "type": "string",
             "enum": ["new", "in_progress", "done"],
             "example": "new"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["single", "template", "instance"],
+            "example": "single"
+          },
+          "scheduled_for": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "example": "2026-04-20"
+          },
+          "parent_task_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "example": 42
+          },
+          "is_active": {
+            "type": "boolean",
+            "example": true
+          },
+          "recurrence": {
+            "allOf": [
+              { "$ref": "#/components/schemas/Recurrence" }
+            ],
+            "nullable": true
           },
           "created_at": {
             "type": "string",

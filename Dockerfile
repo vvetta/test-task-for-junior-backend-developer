@@ -14,7 +14,7 @@ FROM alpine:3.21
 
 WORKDIR /app
 
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates tzdata
 
 COPY --from=builder /out/taskservice /app/taskservice
 

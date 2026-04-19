@@ -37,6 +37,13 @@ func main() {
 
 	taskRepo := postgresrepo.New(pool)
 	taskUsecase := task.NewService(taskRepo)
+
+	if err := taskUsecase.GeneratePending(ctx); err != nil {
+		logger.Error("initial templates generation failed", "error", err)
+	}
+
+	go startGenerationLoop(ctx, logger, taskUsecase)
+
 	taskHandler := httphandlers.NewTaskHandler(taskUsecase)
 	docsHandler := swaggerdocs.NewHandler()
 	router := transporthttp.NewRouter(taskHandler, docsHandler)
@@ -49,20 +56,33 @@ func main() {
 
 	go func() {
 		<-ctx.Done()
-
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-
 		if err := server.Shutdown(shutdownCtx); err != nil {
 			logger.Error("shutdown http server", "error", err)
 		}
 	}()
 
 	logger.Info("http server started", "addr", cfg.HTTPAddr)
-
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		logger.Error("listen and serve", "error", err)
 		os.Exit(1)
+	}
+}
+
+func startGenerationLoop(ctx context.Context, logger *slog.Logger, service *task.Service) {
+	ticker := time.NewTicker(1 * time.Hour)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if err := service.GeneratePending(context.Background()); err != nil {
+				logger.Error("periodic templates generation failed", "error", err)
+			}
+		}
 	}
 }
 
@@ -88,6 +108,5 @@ func envOrDefault(key, fallback string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
 	}
-
 	return fallback
 }
