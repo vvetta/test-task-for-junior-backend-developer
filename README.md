@@ -227,16 +227,3 @@ http://localhost:8080/swagger/openapi.json
 - `scheduled_for`
 
 Это позволяет безопасно повторно запускать генерацию без риска создать дубликаты.
-
-## Примеры API
-
-### Создание обычной задачи
-
-```bash
-curl -X POST http://localhost:8080/api/v1/tasks \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "title": "Call patient",
-    "description": "Confirm appointment",
-    "status": "new"
-  }'
